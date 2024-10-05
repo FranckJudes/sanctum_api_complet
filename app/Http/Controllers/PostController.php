@@ -3,11 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 
-
-class PostController extends Controller
+class PostController extends Controller implements HasMiddleware
 {
+    public static function middleware()
+    {
+        return [
+           new Middleware('auth:sanctum',except:['index','show'])
+        ];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -26,7 +34,7 @@ class PostController extends Controller
             'body' => 'required',
         ]);
 
-        $posts =  Post::create($fields);
+        $posts = $request->user()->posts()->create($fields);
 
         return response()->json(['post' => $posts],200);
     }
@@ -44,6 +52,7 @@ class PostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
+        Gate::authorize('modifier_post',$post);
 
         $fields = $request->validate([
             'title' => 'required|max:255',
@@ -60,6 +69,7 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
+        Gate::authorize('modifier_post',$post);
         $post->delete();
         return response()->json(['message' => "The post was deleted"],200);
     }
